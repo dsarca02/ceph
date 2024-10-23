@@ -73,7 +73,8 @@ class Collection(str, enum.Enum):
     perf_memory_metrics = 'perf_memory_metrics'
     basic_pool_options_bluestore = 'basic_pool_options_bluestore'
     basic_pool_flags = 'basic_pool_flags'
-
+    osd_op_queue = 'osd_op_queue'
+    
 MODULE_COLLECTION : List[Dict] = [
     {
         "name": Collection.basic_base,
@@ -147,6 +148,12 @@ MODULE_COLLECTION : List[Dict] = [
         "channel": "basic",
         "nag": False
     },
+    {
+        "name": Collection.osd_op_queue,
+        "description": "OSD op queue stats",
+        "channel": "basic",
+        "nag": False
+    }
 ]
 
 ROOK_KEYS_BY_COLLECTION : List[Tuple[str, Collection]] = [
@@ -365,6 +372,8 @@ class Module(MgrModule):
 
         return metadata
 
+    def gather_osd_op_queue_value(self) -> str:
+        try:
     def gather_mon_metadata(self,
                             mon_map: Dict[str, List[Dict[str, str]]]) -> Dict[str, Dict[str, int]]:
         keys = list()
@@ -1263,6 +1272,8 @@ class Module(MgrModule):
                 'require_min_compat_client': osd_map['require_min_compat_client'],
                 'cluster_network': cluster_network,
             }
+            if self.is_enabled_collection('osd_op_queue'):
+                report['osd_op_queue'] = self.gather_osd_op_queue_value()
 
             # crush
             report['crush'] = self.gather_crush_info()
