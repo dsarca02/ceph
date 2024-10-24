@@ -373,7 +373,27 @@ class Module(MgrModule):
         return metadata
 
     def gather_osd_op_queue_value(self) -> str:
+        self.log.debug("Collecting osd_op_queue value")
         try:
+            # Attempt to retrieve the osd_op_queue config value using Ceph command
+            value = subprocess.check_output(['ceph', 'config', 'get', 'osd_op_queue'], stderr=subprocess.STDOUT)
+            result = value.strip().decode('utf-8')
+            self.log.debug(f"osd_op_queue value collected: {result}")
+            return result
+        except subprocess.CalledProcessError as e:
+            # Handle the case where the command fails
+            error_msg = f"Failed to collect osd_op_queue: {e.output.decode('utf-8')}"
+            self.log.error(error_msg)
+            return f"Error collecting osd_op_queue: {error_msg}"
+        except FileNotFoundError:
+            # Handle the case where the Ceph command is not found
+            error_msg = "ceph command not found. Ensure Ceph is installed and in your PATH."
+            self.log.error(error_msg)
+            return error_msg
+        except Exception as e:
+            # Catch any other unexpected exceptions
+            self.log.exception("Unexpected error while collecting osd_op_queue")
+            return f"Unexpected error: {str(e)}"
     def gather_mon_metadata(self,
                             mon_map: Dict[str, List[Dict[str, str]]]) -> Dict[str, Dict[str, int]]:
         keys = list()
