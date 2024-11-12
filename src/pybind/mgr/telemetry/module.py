@@ -1083,6 +1083,7 @@ class Module(MgrModule):
             'license': LICENSE,
             'collections_available': [c['name'].name for c in MODULE_COLLECTION],
             'collections_opted_in': [c['name'].name for c in MODULE_COLLECTION if self.is_enabled_collection(c['name'])],
+            'config': {}
         }
 
         if 'ident' in channels:
