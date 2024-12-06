@@ -15,6 +15,7 @@ import requests
 import uuid
 import json 
 import time
+import subprocess
 from datetime import datetime, timedelta
 from prettytable import PrettyTable
 from threading import Event, Lock
@@ -74,7 +75,9 @@ class Collection(str, enum.Enum):
     basic_pool_options_bluestore = 'basic_pool_options_bluestore'
     basic_pool_flags = 'basic_pool_flags'
     osd_op_queue = 'osd_op_queue'
-    
+    osd_memory_target = 'osd_memory_target'
+
+
 MODULE_COLLECTION : List[Dict] = [
     {
         "name": Collection.basic_base,
@@ -153,9 +156,15 @@ MODULE_COLLECTION : List[Dict] = [
         "description": "OSD op queue stats",
         "channel": "basic",
         "nag": False
+    },
+    {
+        "name": Collection.osd_memory_target,
+        "description": "osd memory target",
+        "channel": "basic",
+        "nag": False
     }
-]
 
+]
 ROOK_KEYS_BY_COLLECTION : List[Tuple[str, Collection]] = [
         # Note: a key cannot be both a node and a leaf, e.g.
         # "rook/a/b"
@@ -184,18 +193,6 @@ ROOK_KEYS_BY_COLLECTION : List[Tuple[str, Collection]] = [
         ("rook/cluster/network/provider", Collection.basic_rook_v01),
         ("rook/cluster/external-mode", Collection.basic_rook_v01),
 ]
-
-class ConfigValueFetchError(Exception):
-    """
-    raised when the config value fetch fails
-    """
-    pass
-
-class InvalidConfgValueError(Exception):
-    """
-    raised when the config value is invalid
-    """
-    pass
 
 class Module(MgrModule):
     metadata_keys = [
@@ -371,24 +368,107 @@ class Module(MgrModule):
                 metadata[k][v] += 1
 
         return metadata
-
-    def gather_osd_op_queue_value(self, osd_id: int) -> Dict[str, Any]:
-    try:
-        client_lim = subprocess.check_output(['ceph', 'config', 'get', f'osd.{osd_id}', 'osd_mclock_scheduler_client_lim'])
-        background_lim = subprocess.check_output(['ceph', 'config', 'get', f'osd.{osd_id}', 'osd_mclock_scheduler_background_lim'])
-        recovery_lim = subprocess.check_output(['ceph', 'config', 'get', f'osd.{osd_id}', 'osd_mclock_scheduler_recovery_lim'])
-
-        return {
-            'client_lim': client_lim.strip().decode('utf-8'),
-            'background_lim': background_lim.strip().decode('utf-8'),
-            'recovery_lim': recovery_lim.strip().decode('utf-8')
+    
+    def gather_osd_op_queue_values(self) -> Dict[str, Any]:
+        self.log.debug("Collecting osd_op_queue values for all OSDs")
+    
+        result = {
+            'osd_op_queues': {}
         }
-    except subprocess.CalledProcessError as e:
-        self.log.error(f"Error collecting mClock scheduler values for osd.{osd_id}: {e.output.decode('utf-8')}")
-        return {}
-    except Exception as e:
-        self.log.exception(f"Unexpected error collecting mClock scheduler values for osd.{osd_id}")
-        return {}
+        
+        for osd_id in range(3):
+            try:
+                cmd = ['ceph', 'config', 'get', f'osd.{osd_id}', 'osd_op_queue']
+                output = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    timeout=10
+                )
+                
+                if output.stdout:
+                    value = output.stdout.strip()
+                    try:
+                        value_data = json.loads(value)
+                        if isinstance(value_data, dict):
+                            value = value_data.get('osd_op_queue')
+                        else:
+                            value = value_data
+                    except json.JSONDecodeError:
+                        pass
+                    
+                    if value:
+                        result['osd_op_queues'][f'osd_{osd_id}'] = value
+                        
+            except Exception as e:
+                self.log.error(f"Error collecting queue settings for osd.{osd_id}: {str(e)}")
+        
+        return result
+            
+    def gather_osd_memory_target_values(self, osd_id: int) -> Dict[str, Any]:
+        self.log.debug("Collecting osd_memory_target values for all OSDs")
+    
+        result = {
+            'osd_memory_target': {}
+        }
+        
+        for osd_id in range(3):
+            try:
+                cmd = ['ceph', 'config', 'get', f'osd.{osd_id}', 'osd_memory_target']
+                output = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    timeout=10
+                )
+                
+                if output.stdout:
+                    value = output.stdout.strip()
+                    try:
+                        value_data = json.loads(value)
+                        if isinstance(value_data, dict):
+                            value = value_data.get('osd_memory_target')
+                        else:
+                            value = value_data
+                        # Convert to integer if possible
+                        value = int(value) if value else None
+                    except (json.JSONDecodeError, ValueError):
+                        value = None
+                    
+                    if value is not None:
+                        result['osd_memory_target'][f'osd_{osd_id}'] = value
+                        
+            except Exception as e:
+                self.log.error(f"Error collecting memory settings for osd.{osd_id}: {str(e)}")
+        
+        return result
+            
+    
+    def gather_mon_metadata(self,
+                            mon_map: Dict[str, List[Dict[str, str]]]) -> Dict[str, Dict[str, int]]:
+        keys = list()
+        keys += self.metadata_keys
+
+        metadata: Dict[str, Dict[str, int]] = dict()
+        for key in keys:
+            metadata[key] = defaultdict(int)
+
+        for mon in mon_map['mons']:
+            res = self.get_metadata('mon', mon['name'])
+            if res is None:
+                self.log.debug('Could not get metadata for mon.%s' % (mon['name']))
+                continue
+            for k, v in res.items():
+                if k not in keys:
+                    continue
+
+                metadata[k][v] += 1
+
+        return metadata
+    
+
     def gather_mon_metadata(self,
                             mon_map: Dict[str, List[Dict[str, str]]]) -> Dict[str, Dict[str, int]]:
         keys = list()
@@ -478,60 +558,8 @@ class Module(MgrModule):
             'bucket_sizes': bucket_sizes,
             'bucket_types': bucket_types,
         }
-    
-    """
-    Fetches the osd_memory_target value from the osd dump
-    """
-    def fetch_osd_memory_target(self) -> Optional[int]:
-        max_retries = 3
-        retry_delay = 5
-        attempt = 0
 
-        while attempt < max_retries:
-            r, outb, outs = self.mon_command({
-                'prefix': 'config get',
-                'name': 'osd_memory_target',
-                'format': 'json'
-            })
-
-            if r != 0:
-                raise ConfigValueFetchError("Failed to fetch osd_memory_target")
-            
-            try:
-                value = json.loads(outb).get('osd_memory_target', None)
-                if value is not None:
-                    raise ConfigValueFetchError("osd_memory_target is missing")
-                return value
-            
-            except json.decoder.JSONDecodeError:
-                raise ConfigValueFetchError("Failed to parse osd_memory_target")
-            
-            except ConfigValueFetchError as e:
-                self.log.error(f"Attempt {attempt + 1} failed: {e}")
-                attempt += 1
-                # wait before retrying
-                time.sleep(retry_delay)
-
-        # if all retries fail, return None or set a default value
-        self.log.warning("Failed to fetch osd_memory_target after all retries")
-        return None
-    
-    """
-    Validates osd_memory_target value
-    """
-    def validate_osd_memory_target(self, value: Optional[int]) -> int:
-        if value is None:
-            raise InvalidConfgValueError("osd_memory_target is None")
-        
-        if not isinstance(value, int) or value < 0:
-            raise InvalidConfgValueError("osd_memory_target is invalid")
-
-    """
-    Modify gather_configs() to include values for osd_memor_target and osd_op_queue
-    in the telemetry report.
-    """
-    # changed return type to Union because of the new values
-    def gather_configs(self) -> Union[List[str], Dict[str, Any]]: 
+    def gather_configs(self) -> Dict[str, List[str]]:
         # cluster config options
         cluster = set()
         r, outb, outs = self.mon_command({
@@ -553,23 +581,9 @@ class Module(MgrModule):
         ls = self.get("modified_config_options")
         for opt in ls.get('options', {}):
             active.add(opt)
-
-        # osd memory target
-        config_values = {}
-        try:
-            osd_memory_target_value = self.fetch_osd_memory_target()
-            validated_value = self.validate_osd_memory_target(osd_memory_target_value)
-            config_values['osd_memory_target'] = validated_value
-        
-        except InvalidConfgValueError as e:
-            self.log.error(f"Invalid osd_memory_target value: {e}")
-            config_values['osd_memory_target'] = 0
-
         return {
             'cluster_changed': sorted(list(cluster)),
             'active_changed': sorted(list(active)),
-            # add osd_memory_target to the report
-            'config_values': config_values
         }
 
     def anonymize_entity_name(self, entity_name:str) -> str:
@@ -1088,11 +1102,7 @@ class Module(MgrModule):
             return data[-1][1]
         else:
             return 0
-        
-    """
-    Modify compile_report() to include the new values for osd_memory_target and osd_op_queue
-    in the telemetry report
-    """
+
     def compile_report(self, channels: Optional[List[str]] = None) -> Dict[str, Any]:
         if not channels:
             channels = self.get_active_channels()
@@ -1119,16 +1129,9 @@ class Module(MgrModule):
             service_map = self.get('service_map')
             fs_map = self.get('fs_map')
             df = self.get('df')
-
-            # include osd_memory_target in the report
-            config_values = report['config'].get('config_values', {})
-            if 'osd_memory_target' in config_values:
-                report['osd_memory_target'] = config_values['osd_memory_target']
-
-            
-            report['created'] = mon_map['created']
-
             df_pools = {pool['id']: pool for pool in df['pools']}
+
+            report['created'] = mon_map['created']
 
             # mons
             v1_mons = 0
@@ -1287,8 +1290,9 @@ class Module(MgrModule):
                 'require_min_compat_client': osd_map['require_min_compat_client'],
                 'cluster_network': cluster_network,
             }
-            if self.is_enabled_collection('osd_op_queue'):
-                report['osd_op_queue'] = self.gather_osd_op_queue_value()
+            report['osd_op_queues'] = dict(self.gather_osd_op_queue_values())
+            
+            report['osd_memory_target'] = dict(self.gather_osd_memory_target_values)
 
             # crush
             report['crush'] = self.gather_crush_info()
