@@ -498,6 +498,22 @@ class Module(MgrModule):
     
     def gather_mon_metadata(self,
                             mon_map: Dict[str, List[Dict[str, str]]]) -> Dict[str, Dict[str, int]]:
+        """
+        Gathers metadata for monitor nodes.
+
+        This function collects metadata for each monitor node specified in the
+        mon_map and aggregates the counts of each metadata key.
+
+        Args:
+            mon_map (Dict[str, List[Dict[str, str]]]): A dictionary containing
+            a list of monitor nodes under the key 'mons'. Each monitor node
+            is represented as a dictionary with its attributes.
+
+        Returns:
+            Dict[str, Dict[str, int]]: A dictionary where each key is a metadata
+            key and the value is another dictionary. This inner dictionary maps
+            metadata values to their respective counts across all monitor nodes.
+        """
         keys = list()
         keys += self.metadata_keys
 
@@ -610,6 +626,18 @@ class Module(MgrModule):
         }
 
     def gather_configs(self) -> Dict[str, List[str]]:
+        """
+        Gathers and returns the configuration options for the cluster and active daemons.
+
+        This method retrieves the cluster configuration options by executing the 'config dump' command
+        and parsing its JSON output. It also retrieves the daemon-reported options, which may include
+        options from ceph.conf.
+
+        Returns:
+            Dict[str, List[str]]: A dictionary with two keys:
+                - 'cluster_changed': A sorted list of configuration option names from the cluster.
+                - 'active_changed': A sorted list of configuration option names from active daemons.
+        """
         # cluster config options
         cluster = set()
         r, outb, outs = self.mon_command({
