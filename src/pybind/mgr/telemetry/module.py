@@ -2245,9 +2245,25 @@ Please consider enabling the telemetry module with 'ceph telemetry on'.'''
 
     @CLIReadCommand('telemetry preview')
     def preview(self, channels: Optional[List[str]] = None) -> Tuple[int, str, str]:
-        '''
-        Preview a sample report of the most recent collections available (except for 'device')
-        '''
+        """
+        Preview a sample report of the most recent collections available (except for 'device').
+
+        Args:
+            channels (Optional[List[str]]): A list of channels to include in the report. Defaults to None.
+
+        Returns:
+            Tuple[int, str, str]: A tuple containing:
+                - An integer status code (0 for success).
+                - A string message or the JSON formatted report.
+                - An empty string (reserved for future use or additional messages).
+
+        Notes:
+            - Uses a lock to prevent conflicts between previewing and sending reports.
+            - If the user is already opted-in to the most recent collection, a message is returned.
+            - If there are collections the user is not opted-in to, a sample report is generated.
+            - The performance histogram is formatted before returning the report.
+            - If the 'device' channel is enabled, a note is appended to the report indicating that the device report is generated separately.
+        """
         report = {}
 
         # We use a lock to prevent a scenario where the user wishes to preview
@@ -2282,9 +2298,19 @@ Please consider enabling the telemetry module with 'ceph telemetry on'.'''
 
     @CLIReadCommand('telemetry show-device')
     def show_device(self) -> Tuple[int, str, str]:
-        '''
-        Show a sample device report
-        '''
+        """
+        Show a sample device report.
+
+        Returns:
+            Tuple[int, str, str]: A tuple containing:
+                - An integer status code (0 for success).
+                - A message or JSON string of the device report.
+                - An empty string (reserved for future use).
+
+        If telemetry is off, a message prompting the user to enable telemetry is returned.
+        If the device channel is off, a message prompting the user to enable the device channel is returned.
+        If both telemetry and the device channel are enabled, a JSON string of the device report is returned.
+        """
         if not self.enabled:
             # if telemetry is off, no report is being sent, hence nothing to show
             msg = 'Telemetry is off. Please consider opting-in with `ceph telemetry on`.\n' \
