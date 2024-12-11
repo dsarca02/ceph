@@ -1634,6 +1634,18 @@ class Module(MgrModule):
         report[last_node] = value
 
     def _try_post(self, what: str, url: str, report: Dict[str, Dict[str, str]]) -> Optional[str]:
+        """
+        Attempts to send a report to a specified URL using an HTTP PUT request.
+
+        Args:
+            what (str): A description of what is being sent.
+            url (str): The URL to which the report is to be sent.
+            report (Dict[str, Dict[str, str]]): The report data to be sent in JSON format.
+
+        Returns:
+            Optional[str]: Returns None if the request is successful, otherwise returns a string
+                           describing the reason for failure.
+        """
         self.log.info('Sending %s to: %s' % (what, url))
         proxies = dict()
         if self.proxy:
@@ -1774,6 +1786,15 @@ class Module(MgrModule):
             self.log.debug(f"user has upgraded already: collection: {self.db_collection}")
 
     def is_enabled_collection(self, collection: Collection) -> bool:
+        """
+        Check if a given collection is enabled.
+
+        Args:
+            collection (Collection): The collection to check.
+
+        Returns:
+            bool: True if the collection is enabled, False otherwise.
+        """
         if self.db_collection is None:
             return False
         return collection.name in self.db_collection
@@ -1791,9 +1812,21 @@ class Module(MgrModule):
 
         self.set_store('collection', json.dumps(self.db_collection))
 
-    def send(self,
-             report: Dict[str, Dict[str, str]],
-             endpoint: Optional[List[EndPoint]] = None) -> Tuple[int, str, str]:
+    def send(self, report: Dict[str, Dict[str, str]], endpoint: Optional[List[EndPoint]] = None) -> Tuple[int, str, str]:
+        """
+        Sends a telemetry report to specified endpoints.
+
+        Args:
+            report (Dict[str, Dict[str, str]]): The telemetry report to be sent.
+            endpoint (Optional[List[EndPoint]]): List of endpoints to send the report to. 
+                                                 Defaults to [self.EndPoint.ceph, self.EndPoint.device].
+
+        Returns:
+            Tuple[int, str, str]: A tuple containing:
+                - An integer status code (0 for success, 1 for failure).
+                - An empty string (reserved for future use).
+                - A string message detailing the success and failure reasons.
+        """
         if not endpoint:
             endpoint = [self.EndPoint.ceph, self.EndPoint.device]
         failed = []
