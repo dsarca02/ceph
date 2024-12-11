@@ -196,6 +196,8 @@ List all collections with::
   ident_base                      NOT REPORTING: NOT OPTED-IN, CHANNEL ident IS OFF    User-provided identifying information about the cluster
   perf_memory_metrics             NOT REPORTING: NOT OPTED-IN, CHANNEL perf IS OFF     Heap stats and mempools for mon and mds
   perf_perf                       NOT REPORTING: NOT OPTED-IN, CHANNEL perf IS OFF     Information about performance counters of the cluster
+  basic_osd_memory_target         NOT REPORTING: NOT OPTED-IN                          Value of osd_memory_target to understand heap memory usage optimization
+  basic_osd_op_queue              NOT REPORTING: NOT OPTED-IN                          Value of osd_op_queue to understand operation prioritization based on the op scheduler set (e.g., "wpq" or "mClock")
 
 Where:
 
