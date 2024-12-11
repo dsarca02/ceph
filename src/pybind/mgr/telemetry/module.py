@@ -2186,12 +2186,20 @@ To enable, add '--license {LICENSE}' to the 'ceph telemetry on' command.'''
         return 0, f'{msg}{table.get_string(sortby="NAME")}', ''
 
     @CLICommand('telemetry send')
-    def do_send(self,
-                endpoint: Optional[List[EndPoint]] = None,
-                license: Optional[str] = None) -> Tuple[int, str, str]:
-        '''
-        Send a sample report
-        '''
+    def do_send(self, endpoint: Optional[List[EndPoint]] = None, license: Optional[str] = None) -> Tuple[int, str, str]:
+        """
+        Send a sample report.
+
+        Parameters:
+        endpoint (Optional[List[EndPoint]]): A list of endpoints to send the report to. Defaults to None.
+        license (Optional[str]): A license string to override the default license check. Defaults to None.
+
+        Returns:
+        Tuple[int, str, str]: A tuple containing:
+            - An integer status code (0 for success, negative for errors).
+            - A string message (empty if no error).
+            - A string with additional information (empty if no error or if opted-in).
+        """
         if not self.is_opted_in() and license != LICENSE:
             self.log.debug(('A telemetry send attempt while opted-out. '
                             'Asking for license agreement'))
@@ -2204,9 +2212,22 @@ Please consider enabling the telemetry module with 'ceph telemetry on'.'''
 
     @CLIReadCommand('telemetry show')
     def show(self, channels: Optional[List[str]] = None) -> Tuple[int, str, str]:
-        '''
-        Show a sample report of opted-in collections (except for 'device')
-        '''
+        """
+        Show a sample report of opted-in collections (except for 'device').
+
+        Args:
+            channels (Optional[List[str]]): A list of channels to include in the report. If None, all channels are included.
+
+        Returns:
+            Tuple[int, str, str]: A tuple containing:
+                - An integer status code (0 for success).
+                - A string message or the JSON formatted report.
+                - An empty string (reserved for future use or additional information).
+
+        Notes:
+            - If telemetry is disabled, a message prompting the user to enable it is returned.
+            - The device report is generated separately and can be viewed with 'ceph telemetry show-device'.
+        """
         if not self.enabled:
             # if telemetry is off, no report is being sent, hence nothing to show
             msg = 'Telemetry is off. Please consider opting-in with `ceph telemetry on`.\n' \
