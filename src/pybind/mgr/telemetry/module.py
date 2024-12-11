@@ -63,6 +63,25 @@ REVISION = 3
 #   - crush map stats
 
 class Collection(str, enum.Enum):
+    """
+    Collection is an enumeration that represents various telemetry data collection categories in the Ceph management system.
+
+    Attributes:
+        basic_base (str): Represents the basic base telemetry data collection.
+        device_base (str): Represents the device base telemetry data collection.
+        crash_base (str): Represents the crash base telemetry data collection.
+        ident_base (str): Represents the identity base telemetry data collection.
+        perf_perf (str): Represents the performance telemetry data collection.
+        basic_mds_metadata (str): Represents the basic metadata server telemetry data collection.
+        basic_pool_usage (str): Represents the basic pool usage telemetry data collection.
+        basic_usage_by_class (str): Represents the basic usage by class telemetry data collection.
+        basic_rook_v01 (str): Represents the basic Rook version 01 telemetry data collection.
+        perf_memory_metrics (str): Represents the performance memory metrics telemetry data collection.
+        basic_pool_options_bluestore (str): Represents the basic pool options for Bluestore telemetry data collection.
+        basic_pool_flags (str): Represents the basic pool flags telemetry data collection.
+        osd_op_queue (str): Represents the OSD operation queue telemetry data collection.
+        osd_memory_target (str): Represents the OSD memory target telemetry data collection.
+    """
     basic_base = 'basic_base'
     device_base = 'device_base'
     crash_base = 'crash_base'
@@ -196,6 +215,11 @@ ROOK_KEYS_BY_COLLECTION : List[Tuple[str, Collection]] = [
 ]
 
 class Module(MgrModule):
+    """
+    Telemetry module for Ceph Manager.
+    This module collects and reports various telemetry data from the Ceph cluster,
+    including metadata, performance metrics, and device health information.
+    """
     metadata_keys = [
         "arch",
         "ceph_version",
