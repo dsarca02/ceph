@@ -1898,9 +1898,23 @@ class Module(MgrModule):
             pass
 
     def toggle_channel(self, action: str, channels: Optional[List[str]] = None) -> Tuple[int, str, str]:
-        '''
-        Enable or disable a list of channels
-        '''
+        """
+        Enable or disable a list of telemetry channels.
+
+        Parameters:
+        action (str): The action to perform, either 'enable' or 'disable'.
+        channels (Optional[List[str]]): A list of channel names to be toggled. If None, a message will be returned asking for channel names.
+
+        Returns:
+        Tuple[int, str, str]: A tuple containing:
+            - An integer status code (0 for success).
+            - A message string providing feedback on the operation.
+            - An empty string (reserved for future use or additional data).
+
+        Notes:
+        - Telemetry must be enabled for channels to be toggled. If telemetry is off, a message will be returned prompting the user to enable it.
+        - If any provided channel name is not valid, a message will be returned listing the available channels.
+        """
         if not self.enabled:
             # telemetry should be on for channels to be toggled
             msg = 'Telemetry is off. Please consider opting-in with `ceph telemetry on`.\n' \
@@ -2019,6 +2033,18 @@ To enable, add '--license {LICENSE}' to the 'ceph telemetry on' command.'''
 
         msg = 'Telemetry is now disabled.'
         return 0, msg, ''
+
+    """
+    CLI commands for telemetry module
+    1. Enable all channels
+    2. Enable a list of channels
+    3. Disable all channels
+    4. Disable a list of channels
+    5. List all channels
+    6. List all collections
+    7. Send a sample report
+    8. Show a sample report of opted-in collections (except for 'device')
+    """    
 
     @CLIReadCommand('telemetry enable channel all')
     def enable_channel_all(self, channels: List[str] = ALL_CHANNELS) -> Tuple[int, str, str]:
