@@ -395,6 +395,17 @@ class Module(MgrModule):
         return metadata
     
     def gather_osd_op_queue_values(self) -> Dict[str, Any]:
+        """
+        Collects the 'osd_op_queue' values for all OSDs and returns them in a dictionary.
+        This method runs a 'ceph config get' command for each OSD to retrieve the 'osd_op_queue' value.
+        It processes the output, handles JSON decoding if necessary, and stores the values in a dictionary.
+        Returns:
+            Dict[str, Any]: A dictionary containing the 'osd_op_queue' values for each OSD.
+            The keys are in the format 'osd_<osd_id>' and the values are the corresponding 'osd_op_queue' values.
+        Logs:
+            - Debug message indicating the start of the collection process.
+            - Error message if there is an issue collecting the queue settings for any OSD.
+        """
         self.log.debug("Collecting osd_op_queue values for all OSDs")
     
         result = {
@@ -432,6 +443,20 @@ class Module(MgrModule):
         return result
             
     def gather_osd_memory_target_values(self, osd_id: int) -> Dict[str, Any]:
+        """
+        Collects the 'osd_memory_target' values for all OSDs.
+        This method runs a 'ceph config get' command to retrieve the 'osd_memory_target'
+        configuration for each OSD and stores the results in a dictionary.
+        Args:
+            osd_id (int): The ID of the OSD for which to gather memory target values.
+        Returns:
+            Dict[str, Any]: A dictionary containing the 'osd_memory_target' values for each OSD.
+                            The keys are in the format 'osd_<osd_id>' and the values are the
+                            corresponding memory target values.
+        Raises:
+            Exception: If there is an error while collecting memory settings for any OSD, it logs
+                       the error and continues with the next OSD.
+        """
         self.log.debug("Collecting osd_memory_target values for all OSDs")
     
         result = {
