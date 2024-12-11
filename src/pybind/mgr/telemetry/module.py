@@ -1110,6 +1110,23 @@ class Module(MgrModule):
         return r
 
     def gather_device_report(self) -> Dict[str, Dict[str, Dict[str, str]]]:
+        """
+        Gathers a report of device metrics, anonymizing host and device IDs.
+
+        This method collects device metrics from the 'devicehealth' service, 
+        anonymizes the host and device IDs, and returns the data in a nested 
+        dictionary structure.
+
+        Returns:
+            Dict[str, Dict[str, Dict[str, str]]]: A nested dictionary where the 
+            first key is the anonymized host ID, the second key is the anonymized 
+            device ID, and the value is a dictionary of timestamped device metrics.
+
+        Raises:
+            Exception: If there is an issue with formatting time, retrieving device 
+            information, or getting recent device metrics, appropriate debug or 
+            error messages are logged and an empty dictionary is returned.
+        """
         try:
             time_format = self.remote('devicehealth', 'get_time_format')
         except Exception as e:
@@ -1182,6 +1199,21 @@ class Module(MgrModule):
             return 0
 
     def compile_report(self, channels: Optional[List[str]] = None) -> Dict[str, Any]:
+        """
+        Compile a telemetry report based on the specified channels.
+        Args:
+            channels (Optional[List[str]]): A list of channels to include in the report. 
+                                            If None, all active channels are included.
+        Returns:
+            Dict[str, Any]: A dictionary containing the compiled telemetry report.
+        The report includes various sections based on the channels specified:
+            - 'ident': Includes identification information such as description, contact, and organization.
+            - 'basic': Includes basic cluster information such as mon, osd, pools, crush, cephfs, daemons, hosts, and usage.
+            - 'crash': Includes crash information.
+            - 'perf': Includes performance counters, stats per pool, stats per pg, io rate, osd perf histograms, mempool, heap stats, and rocksdb stats.
+        Note:
+            The 'device' channel is not included in this report; it is sent to a different endpoint.
+        """
         if not channels:
             channels = self.get_active_channels()
         report = {
