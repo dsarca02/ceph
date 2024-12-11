@@ -2076,9 +2076,19 @@ To enable, add '--license {LICENSE}' to the 'ceph telemetry on' command.'''
 
     @CLIReadCommand('telemetry channel ls')
     def channel_ls(self) -> Tuple[int, str, str]:
-        '''
-        List all channels
-        '''
+        """
+        List all channels and their statuses.
+
+        This method generates a table listing all available channels along with their
+        enabled status, default status, and description. The table is formatted using
+        PrettyTable with specific alignments and padding settings.
+
+        Returns:
+            Tuple[int, str, str]: A tuple containing:
+                - An integer status code (0 for success).
+                - A string representation of the table sorted by channel name.
+                - An empty string (reserved for future use or additional information).
+        """
         table = PrettyTable(
             [
                 'NAME', 'ENABLED', 'DEFAULT', 'DESC',
@@ -2109,9 +2119,20 @@ To enable, add '--license {LICENSE}' to the 'ceph telemetry on' command.'''
 
     @CLIReadCommand('telemetry collection ls')
     def collection_ls(self) -> Tuple[int, str, str]:
-        '''
-        List all collections
-        '''
+        """
+        List all telemetry collections and their statuses.
+
+        This method generates a list of all telemetry collections, their current
+        status (whether they are reporting or not), and their descriptions. It also
+        checks for any new collections that are available and includes a message
+        prompting the user to opt-in to these collections if they are not already.
+
+        Returns:
+            Tuple[int, str, str]: A tuple containing:
+                - An integer status code (0 for success).
+                - A string message with the list of collections and their statuses.
+                - An empty string (reserved for future use or additional messages).
+        """
         col_delta = self.collection_delta()
         msg = ''
         if col_delta is not None and len(col_delta) > 0:
