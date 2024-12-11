@@ -1568,6 +1568,22 @@ class Module(MgrModule):
         return report
 
     def get_rook_data(self, report: Dict[str, object]) -> None:
+        """
+        Retrieves Rook-related data from the Ceph configuration and adds it to the provided report.
+
+        Args:
+            report (Dict[str, object]): The report dictionary to which Rook data will be added.
+
+        Returns:
+            None: This function does not return any value.
+
+        The function performs the following steps:
+        1. Executes the 'config-key dump' command to retrieve the Ceph configuration key-value dump in JSON format.
+        2. If the command execution fails or the JSON decoding fails, the function returns early.
+        3. Iterates over predefined Rook keys and their associated collections.
+        4. Checks if the collection is enabled.
+        5. Adds the key-value data to the report if the collection is enabled.
+        """
         r, outb, outs = self.mon_command({
             'prefix': 'config-key dump',
             'format': 'json'
@@ -1586,6 +1602,20 @@ class Module(MgrModule):
                 self.add_kv_to_report(report, elem[0], config_kv_dump.get(elem[0]))
 
     def add_kv_to_report(self, report: Dict[str, object], key_path: str, value: Any) -> None:
+        """
+        Adds a key-value pair to a nested dictionary report based on a key path.
+
+        Args:
+            report (Dict[str, object]): The dictionary to which the key-value pair will be added.
+            key_path (str): The path of keys separated by '/' where the value should be added.
+            value (Any): The value to be added to the dictionary.
+
+        Returns:
+            None
+
+        Raises:
+            Logs an error if the key path is invalid or if the last part of the key path already exists in the dictionary.
+        """
         last_node = key_path.split('/')[-1]
         for node in key_path.split('/')[0:-1]:
             if node not in report:
